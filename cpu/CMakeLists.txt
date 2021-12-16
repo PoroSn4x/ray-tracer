@@ -16,5 +16,6 @@ find_package(Vulkan REQUIRED)
 target_link_libraries(${CPU_EXECUTABLE_NAME} PUBLIC 
                         glad 
                         glfw
+                        glm
                         #${OPENGL_gl_LIBRARY}
                         Vulkan::Vulkan)

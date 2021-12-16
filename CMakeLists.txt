@@ -14,6 +14,7 @@ set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
 set(GLFW_BUILD_DOCS OFF)
 add_subdirectory(${VENDOR_DIR}/glfw)
 add_subdirectory(${VENDOR_DIR}/glad)
+add_subdirectory(${VENDOR_DIR}/glm)
 
 set(DEFAULT_LIBS_DIR libs)
 set(GLFW_LIBS_DIR ${DEFAULT_LIBS_DIR}/GLFW3)
@@ -25,6 +26,8 @@ set_target_properties(update_mappings PROPERTIES FOLDER ${GLFW_LIBS_DIR})
 
 # Other projects
 set_target_properties(glad PROPERTIES FOLDER ${DEFAULT_LIBS_DIR})
+set_target_properties(glm PROPERTIES FOLDER ${DEFAULT_LIBS_DIR})
+
 
 add_subdirectory(cpu)
 add_subdirectory(gpu)

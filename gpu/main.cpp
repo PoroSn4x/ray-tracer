@@ -11,12 +11,19 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-unsigned int LoadShader(std::string file, int flag);
-std::string OpenFile(const char* path);
+unsigned int loadShader(std::string file, int flag);
+std::string openFile(const char* path);
+void render();
 
 // settings
-const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_WIDTH = 600;
 const unsigned int SCR_HEIGHT = 600;
+const float pi = 3.14159265f;
+
+GLFWwindow* window;
+unsigned int shaderProgram;
+
+float prevFrame = 0;
 
 int main()
 {
@@ -29,7 +36,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Ray Marching till we fall", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Ray Marching till we fall", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -48,13 +55,13 @@ int main()
     }
     
     std::string path = std::string(__FILE__);
-    unsigned int vertexShader = LoadShader(path + std::string("\\..\\shaders\\shader.vert"), GL_VERTEX_SHADER);
-    unsigned int fragmentShader = LoadShader(path + std::string("\\..\\shaders\\shader.frag"), GL_FRAGMENT_SHADER);
+    unsigned int vertexShader = loadShader(path + std::string("\\..\\shaders\\shader.vert"), GL_VERTEX_SHADER);
+    unsigned int fragmentShader = loadShader(path + std::string("\\..\\shaders\\shader.frag"), GL_FRAGMENT_SHADER);
     
     // link shaders
     int success;
     char infoLog[512];
-    unsigned int shaderProgram = glCreateProgram();
+    shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
@@ -71,9 +78,12 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-         0.0f,  0.5f, 0.0f   // top 
+         1.0f, -1.0f, 0.0f,  // bottom right
+        -1.0f, -1.0f, 0.0f,  // bottom left
+         1.0f,  1.0f, 0.0f,  // top right
+        -1.0f,  1.0f, 0.0f,  // top left
+         1.0f,  1.0f, 0.0f,  // top right
+        -1.0f, -1.0f, 0.0f,  // bottom left
     };
 
     unsigned int VBO, VAO;
@@ -102,31 +112,7 @@ int main()
     // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // input
-        // -----
-        processInput(window);
-
-        // render
-        // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // be sure to activate the shader before any calls to glUniform
-        glUseProgram(shaderProgram);
-
-        // update shader uniform
-        float timeValue = glfwGetTime();
-        float greenValue = sin(timeValue) / 2.0f + 0.5f;
-        int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-
-        // render the triangle
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        render();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -139,6 +125,38 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
+}
+
+void render()
+{
+    // input
+    processInput(window);
+    float curFrame = glfwGetTime();
+
+    // render
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // be sure to activate the shader before any calls to glUniform
+    glUseProgram(shaderProgram);
+
+    int viewPortSizeLocation = glGetUniformLocation(shaderProgram, "viewPortSize");
+    glUniform2f(viewPortSizeLocation, SCR_WIDTH, SCR_HEIGHT);
+
+    float t = fmod(curFrame, 2 * pi);
+    int tLocation = glGetUniformLocation(shaderProgram, "t");
+    glUniform1f(tLocation, t);
+
+    // render the triangle
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    float frameDiff = curFrame - prevFrame;
+    prevFrame = curFrame;
+    std::cout << "Rendering time: " << frameDiff << " || FPS: " << 1/frameDiff << '\n';
+
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
@@ -158,10 +176,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-unsigned int LoadShader(std::string file, int flag)
+unsigned int loadShader(std::string file, int flag)
 {
     unsigned int shader = glCreateShader(flag);
-    std::string sourceString = OpenFile(file.c_str());
+    std::string sourceString = openFile(file.c_str());
     const char* source = sourceString.c_str();
     glShaderSource(shader, 1, &source, NULL); // change to source
     glCompileShader(shader);
@@ -185,7 +203,7 @@ std::string slurp(std::ifstream& in)
     return sstr.str();
 }
 
-std::string OpenFile(const char* path)
+std::string openFile(const char* path)
 {
     std::ifstream reader(path);
 
